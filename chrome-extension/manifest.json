@@ -31,8 +31,14 @@
           "https://*.outlook.com/*",
           "https://*.yahoo.com/mail/*"
         ],
-        "js": ["content-scripts/dom-scanner.js"],
+        "js": ["shared/error-types.js", "shared/validators.js", "content-scripts/dom-scanner.js"],
         "run_at": "document_idle"
+      }
+    ],
+    "web_accessible_resources": [
+      {
+        "resources": ["shared/validators.js", "shared/error-types.js"],
+        "matches": ["<all_urls>"]
       }
     ],
     "icons": {

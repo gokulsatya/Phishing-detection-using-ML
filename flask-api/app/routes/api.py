@@ -1,18 +1,21 @@
-from flask import Blueprint, request, jsonify, abort
+# Update: flask-api/app/routes/api.py
+
+from flask import Blueprint, request, jsonify, abort, g
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from app.security.auth_middleware import auth_required
+from app.security.request_validator import validate_prediction_request
+from app.security.input_validator import sanitize_url, sanitize_email_content
+from app.models.phishing_model import PhishingModel
 
 # Create blueprint
 api_bp = Blueprint('api', __name__)
-
-# Import ML model interface
-# This will be implemented later when connecting to the trained model
-from app.models.phishing_model import PhishingModel
 
 # Initialize model
 model = PhishingModel()
 
 @api_bp.route('/predict', methods=['POST'])
+@auth_required  # Add authentication requirement
 def predict():
     """
     Endpoint for phishing prediction
@@ -20,40 +23,64 @@ def predict():
     Returns prediction results with confidence score
     """
     if not request.is_json:
-        return jsonify({"error": {"code": "PHISH-400", 
-                                 "message": "Request must be JSON"}}), 400
+        return jsonify({
+            "error": {
+                "code": "PHISH-400", 
+                "message": "Request must be JSON"
+            }
+        }), 400
     
     data = request.get_json()
     
-    # Check for required fields
-    if not ('email_content' in data or 'url' in data):
-        return jsonify({"error": {"code": "PHISH-422", 
-                                 "message": "Missing required field: email_content or url"}}), 422
+    # Validate request data
+    validation_errors = validate_prediction_request(data)
+    if validation_errors:
+        return jsonify({
+            "error": {
+                "code": "PHISH-422", 
+                "message": "Validation error",
+                "details": validation_errors
+            }
+        }), 422
     
     try:
-        # Extract content for analysis
-        content = data.get('email_content', '')
-        url = data.get('url', '')
+        # Sanitize inputs
+        content = sanitize_email_content(data.get('email_content', ''))
+        url = sanitize_url(data.get('url', ''))
         scan_type = data.get('scan_type', 'REGULAR')
         
-        # For now return a placeholder response
-        # This will be replaced with actual model prediction
-        result = {
-            "prediction": "legitimate",  # or "phishing"
-            "confidence": 0.95,
-            "scan_id": "temp-scan-id",
-            "scan_time": "2025-03-10T12:00:00Z",
-            "features_analyzed": ["sender_domain", "url_length", "has_urgency_terms"]
-        }
+        # Use the model to get prediction
+        if url:
+            result = model.predict(url=url)
+        elif content:
+            result = model.predict(content=content)
+        else:
+            return jsonify({
+                "error": {
+                    "code": "PHISH-422", 
+                    "message": "Missing required field: email_content or url"
+                }
+            }), 422
+        
+        # Add user ID from authentication token
+        result["user_id"] = g.user_id
         
         return jsonify(result), 200
         
     except Exception as e:
         # Log the error (implementation pending)
-        return jsonify({"error": {"code": "PHISH-500", 
-                                 "message": "Internal server error"}}), 500
+        # In a production environment, you'd want to log the actual error
+        return jsonify({
+            "error": {
+                "code": "PHISH-500", 
+                "message": "Internal server error"
+            }
+        }), 500
 
 @api_bp.route('/health', methods=['GET'])
 def health_check():
     """Simple health check endpoint"""
-    return jsonify({"status": "healthy", "version": "1.0.0"}), 200
+    return jsonify({
+        "status": "healthy", 
+        "version": "1.0.0"
+    }), 200

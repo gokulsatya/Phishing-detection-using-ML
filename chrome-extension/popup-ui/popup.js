@@ -24,6 +24,14 @@ let extensionState = {
 
 // Initialize the popup
 document.addEventListener('DOMContentLoaded', async () => {
+  // Check if authenticated
+  const isAuthenticated = await window.phishGuardAPI.isAuthenticated();
+  
+  if (!isAuthenticated) {
+    // Redirect to login page
+    window.location.href = 'login.html';
+    return;
+  }
   // Load state from storage
   await loadState();
   updateUI();

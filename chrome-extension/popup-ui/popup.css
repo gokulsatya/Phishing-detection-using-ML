@@ -210,6 +210,40 @@
     color: #d93025;
   }
   
+  /* Login Form */
+  .login-panel {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+  }
+
+  .form-group {
+  margin-bottom: 12px;
+  }
+
+  .form-group label {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: 500;
+  }
+
+  .form-group input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  font-size: 14px;
+  }
+
+  .error-message {
+  color: #d93025;
+  margin-bottom: 12px;
+  padding: 8px;
+  border-radius: 4px;
+  background-color: #fce8e6;
+  }
+
   .hidden {
     display: none;
   }

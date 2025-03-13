@@ -10,7 +10,8 @@ class PhishGuardAPI {
       
       // Default request timeout (ms)
       this.timeout = 5000;
-      
+      // JWT Token storage
+      this.token = null;
       // Initialize with stored configuration if available
       this.loadConfig();
     }
@@ -25,6 +26,10 @@ class PhishGuardAPI {
           this.baseUrl = result.phishguardConfig.apiUrl || this.baseUrl;
           this.timeout = result.phishguardConfig.timeout || this.timeout;
         }
+        // Load auth token if available
+        if (result.authToken) {
+          this.token = result.authToken;
+        }  
       } catch (error) {
         console.error('Failed to load API config:', error);
       }
@@ -52,6 +57,74 @@ class PhishGuardAPI {
         return false;
       }
     }
+
+    /**
+     * Log in to the API and get a token
+     */
+    async login(email, password) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+    
+        const response = await fetch(`${this.baseUrl}/auth/login`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            email,
+            password
+          }),
+          signal: controller.signal
+        });
+    
+        clearTimeout(timeoutId);
+    
+        if (response.ok) {
+          const data = await response.json();
+          this.token = data.token;
+      
+         // Save token to storage
+          await chrome.storage.local.set({ authToken: data.token });
+      
+          return {
+            success: true,
+            userId: data.user_id,
+            expiresIn: data.expires_in
+          };
+        } else {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error?.message || `Login failed: ${response.status}`);
+        }
+      } catch (error) {
+        if (error.name === 'AbortError') {
+          throw new Error('Login request timed out');
+        }
+        throw error;
+      }
+    }
+
+    /**
+     * Check if we have a valid authentication token
+     */
+    isAuthenticated() {
+      return Boolean(this.token);
+    }
+
+    /**
+     * Create headers with authentication token
+    */
+    getAuthHeaders() {
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+  
+      if (this.token) {
+        headers['Authorization'] = `Bearer ${this.token}`;
+      }
+  
+      return headers;
+  }
     
     /**
      * Check API health/availability
@@ -100,6 +173,11 @@ class PhishGuardAPI {
      * Analyze URL for phishing indicators
      */
     async analyzeUrl(url) {
+       // Check authentication
+       if (!this.isAuthenticated()) {
+         throw new Error('Authentication required');
+        }
+
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), this.timeout);
@@ -121,6 +199,14 @@ class PhishGuardAPI {
         if (response.ok) {
           return await response.json();
         } else {
+           // Handle authentication errors
+           if (response.status === 401) {
+             // Clear invalid token
+             this.token = null;
+             await chrome.storage.local.remove('authToken');
+             throw new Error('Authentication failed. Please log in again.');
+            }
+          
           const errorData = await response.json().catch(() => ({}));
           throw new Error(errorData.error?.message || `API error: ${response.status}`);
         }
@@ -136,6 +222,11 @@ class PhishGuardAPI {
      * Analyze email content for phishing indicators
      */
     async analyzeEmail(content) {
+      // Check authentication
+      if (!this.isAuthenticated()) {
+        throw new Error('Authentication required');
+      }
+
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), this.timeout);
@@ -157,6 +248,14 @@ class PhishGuardAPI {
         if (response.ok) {
           return await response.json();
         } else {
+          // Handle authentication errors
+          if (response.status === 401) {
+            // Clear invalid token
+            this.token = null;
+            await chrome.storage.local.remove('authToken');
+            throw new Error('Authentication failed. Please log in again.');
+          }
+
           const errorData = await response.json().catch(() => ({}));
           throw new Error(errorData.error?.message || `API error: ${response.status}`);
         }
@@ -172,6 +271,11 @@ class PhishGuardAPI {
      * Submit user feedback about a detection result
      */
     async submitFeedback(scanId, isCorrect, userComment = '') {
+      // Check authentication
+      if (!this.isAuthenticated()) {
+        throw new Error('Authentication required');
+      }
+
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), this.timeout);
@@ -194,6 +298,14 @@ class PhishGuardAPI {
         if (response.ok) {
           return await response.json();
         } else {
+          // Handle authentication errors
+          if (response.status === 401) {
+             // Clear invalid token
+            this.token = null;
+            await chrome.storage.local.remove('authToken');
+            throw new Error('Authentication failed. Please log in again.');
+          }
+          
           const errorData = await response.json().catch(() => ({}));
           throw new Error(errorData.error?.message || `API error: ${response.status}`);
         }
