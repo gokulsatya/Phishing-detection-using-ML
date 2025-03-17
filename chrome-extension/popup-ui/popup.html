@@ -57,6 +57,39 @@
         <span id="scan-features" class="result-value">-</span>
       </div>
     </div>
+    <div id="stats-dashboard" class="results-panel hidden">
+      <h2>Usage Statistics</h2>
+      <div class="result-item">
+        <span class="result-label">Total Scans:</span>
+        <span id="total-scans" class="result-value">-</span>
+      </div>
+      <div class="result-item">
+        <span class="result-label">Phishing Detected:</span>
+        <span id="total-phishing" class="result-value">-</span>
+      </div>
+      <div class="result-item">
+        <span class="result-label">Detection Rate:</span>
+        <span id="detection-rate" class="result-value">-</span>
+      </div>
+      <div class="result-item">
+        <span class="result-label">Days Active:</span>
+        <span id="days-active" class="result-value">-</span>
+      </div>
+    </div>  
+    <div class="action-panel">
+      <button id="view-results" class="action-button secondary">Scan Results</button>
+      <button id="view-stats" class="action-button secondary">Statistics</button>
+    </div>
+    <!-- Add this code at the end of the scan-results div in the existing file -->
+
+    <div class="feedback-panel" id="feedback-panel">
+      <h3>Was this prediction helpful?</h3>
+      <div class="feedback-buttons">
+        <button id="thumbs-up" class="feedback-button">👍 Yes</button>
+        <button id="thumbs-down" class="feedback-button">👎 No</button>
+      </div>
+      <div id="feedback-message" class="feedback-message hidden">Thank you for your feedback!</div>
+    </div>
   </div>
   
   <script src="api-client.js"></script>

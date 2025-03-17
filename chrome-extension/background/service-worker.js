@@ -6,6 +6,9 @@ let state = {
   enabled: true,
   lastScan: null,
   detectionCount: 0,
+  scansPerformed: 0,              // Add this line
+  warningsDisplayed: 0,           // Add this line
+  installTime: null,              // Add this line
   apiEndpoint: 'https://api.phishguard.example.com/v1' // Will be configured properly later
 };
 
@@ -102,6 +105,9 @@ async function scanUrl(url, tabId) {
   console.log(`Scanning URL: ${url}`);
   
   try {
+
+    // Increment scan counter
+    state.scansPerformed = (state.scansPerformed || 0) + 1;
     // Validate and sanitize URL
     if (!validators.isValidUrl(url)) {
       console.error('Invalid URL format:', url);
@@ -136,10 +142,14 @@ async function scanUrl(url, tabId) {
       // Update counter if phishing detected
       if (result.prediction === 'phishing') {
         state.detectionCount++;
+        state.warningsDisplayed++;  // Add this line
       }
       
       // Save state
       chrome.storage.local.set({ phishguardState: state });
+
+      // Add this line to update usage stats
+      collectUsageStats();
       
       return result;
     }
@@ -187,6 +197,8 @@ async function scanEmail(content, tabId) {
   console.log(`Scanning email content (length: ${content.length})`);
   
   try {
+    // Increment scan counter
+    state.scansPerformed = (state.scansPerformed || 0) + 1;
 
     // Validate and sanitize email content
     if (!validators.isValidEmailContent(content)) {
@@ -220,10 +232,14 @@ async function scanEmail(content, tabId) {
       // Update counter if phishing detected
       if (result.prediction === 'phishing') {
         state.detectionCount++;
+        state.warningsDisplayed++;  // Add this line
       }
       
       // Save state
       chrome.storage.local.set({ phishguardState: state });
+
+      // Add this line to update usage stats
+      collectUsageStats();
       
       return result;
     }
@@ -254,10 +270,14 @@ async function scanEmail(content, tabId) {
     // Update counter if phishing detected
     if (result.prediction === 'phishing') {
       state.detectionCount++;
+      state.warningsDisplayed++;  // Add this line
     }
     
     // Save state
     chrome.storage.local.set({ phishguardState: state });
+
+    // Add this line to update usage stats
+    collectUsageStats();
     
     return result;
   } catch (error) {
@@ -278,6 +298,14 @@ function updateBadgeWithResult(result, tabId) {
       color: '#EA4335', // Red for phishing
       tabId: tabId 
     });
+
+    // Update warnings displayed counter if not already counted
+    if (result.is_new_detection) {
+      state.warningsDisplayed = (state.warningsDisplayed || 0) + 1;
+      chrome.storage.local.set({ phishguardState: state });
+      collectUsageStats();
+    }
+    
   } else {
     // Clear any previous warning for legitimate content
     setTimeout(() => {
@@ -296,5 +324,73 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
       text: '',
       tabId: tabId 
     });
+  }
+});
+
+// Function to report user interaction with warnings
+async function reportUserInteraction(scanId, didProceed) {
+  try {
+    // Check if authenticated
+    const isAuthenticated = await checkAuthentication();
+    
+    if (!isAuthenticated) {
+      console.warn('Not authenticated, skipping feedback submission');
+      return;
+    }
+    
+    // Get auth token
+    const authToken = (await chrome.storage.local.get(['authToken'])).authToken;
+    
+    // Submit feedback
+    const response = await fetch(`${state.apiEndpoint}/feedback`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      },
+      body: JSON.stringify({
+        scan_id: scanId,
+        is_correct: !didProceed, // If user didn't proceed, warning was likely correct
+        comment: didProceed ? 'User proceeded despite warning' : 'User heeded warning'
+      })
+    });
+    
+    if (response.ok) {
+      console.log('User interaction feedback submitted successfully');
+    } else {
+      console.warn('Failed to submit user interaction feedback');
+    }
+  } catch (error) {
+    console.error('Error reporting user interaction:', error);
+  }
+}
+
+// Function to collect anonymous usage statistics
+async function collectUsageStats() {
+  // Get current stats
+  const stats = {
+    scansPerformed: state.scansPerformed || 0,
+    phishingDetected: state.detectionCount || 0,
+    warningsDisplayed: state.warningsDisplayed || 0,
+    timeInstalled: state.installTime || new Date().toISOString()
+  };
+  
+  // Update storage
+  chrome.storage.local.set({ 
+    phishguardStats: stats
+  });
+  
+  // In a production environment, you might want to send anonymous stats
+  // to your server to improve the extension
+  console.log('Updated local usage statistics');
+} 
+
+// Initialize installation time if not set
+chrome.runtime.onInstalled.addListener(async (details) => {
+  if (details.reason === 'install') {
+    const now = new Date().toISOString();
+    state.installTime = now;
+    await chrome.storage.local.set({ phishguardState: state });
+    console.log('PhishGuard installed at:', now);
   }
 });
