@@ -27,7 +27,7 @@ if (typeof PhishGuardError === 'undefined') {
 class PhishGuardAPI {
     constructor() {
       // Base URL for the API - will be configurable in settings
-      this.baseUrl = 'https://api.phishguard.example.com/v1';
+      this.baseUrl = 'http://127.0.0.1:5000/v1';
       
       // Default request timeout (ms)
       this.timeout = 5000;

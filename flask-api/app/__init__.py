@@ -18,8 +18,9 @@ def create_app(config_name='default'):
     
     # Setup CORS with more restricted settings
     cors_origins = [
-        'chrome-extension://[YOUR-EXTENSION-ID]',  # Replace with your extension ID
-        'http://localhost:5000'  # For development
+        'chrome-extension://*',  # Allow all extensions during development
+        'http://localhost:5000',  # For development
+        'http://127.0.0.1:5000'   # Also include this
     ]
     CORS(app, origins=cors_origins, supports_credentials=True)
     
