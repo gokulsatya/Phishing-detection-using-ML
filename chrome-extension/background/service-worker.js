@@ -9,7 +9,7 @@ let state = {
   scansPerformed: 0,              // Add this line
   warningsDisplayed: 0,           // Add this line
   installTime: null,              // Add this line
-  apiEndpoint: 'https://api.phishguard.example.com/v1' // Will be configured properly later
+  apiEndpoint: 'http://127.0.0.1:5000/v1' // Will be configured properly later
 };
 
 // Load state from storage

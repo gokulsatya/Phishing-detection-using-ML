@@ -6,7 +6,8 @@
     "permissions": [
       "activeTab",
       "storage",
-      "webNavigation"
+      "webNavigation",
+      "scripting"
     ],
     "host_permissions": [
       "https://*.gmail.com/*",
