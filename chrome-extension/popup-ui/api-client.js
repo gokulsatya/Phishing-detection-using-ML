@@ -2,7 +2,28 @@
  * API Client for PhishGuard Extension
  * Handles communication with the phishing detection API
  */
-
+// Add this near the top of api-client.js
+if (typeof PhishGuardError === 'undefined') {
+  // Create a simple fallback error class if the real one isn't loaded
+  class PhishGuardError extends Error {
+    constructor(code, message) {
+      super(message || 'An error occurred');
+      this.code = code;
+      this.name = 'PhishGuardError';
+    }
+    
+    static authFailed(message) {
+      return new PhishGuardError(2002, message || 'Authentication failed');
+    }
+    
+    static unknown(message) {
+      return new PhishGuardError(9999, message || 'Unknown error occurred');
+    }
+  }
+  
+  // Make it globally available
+  window.PhishGuardError = PhishGuardError;
+}
 class PhishGuardAPI {
     constructor() {
       // Base URL for the API - will be configurable in settings
