@@ -1,13 +1,17 @@
 # Save to: flask-api/app/security/jwt_utils.py
-
+import os
 import jwt
 import datetime
 from flask import current_app, request
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # JWT configuration
-JWT_SECRET = "your-secret-key-replace-in-production"  # Use environment variable in production
+JWT_SECRET = os.getenv('JWT_SECRET', 'your-secret-key-replace-in-production')  # Use environment variable in production
 JWT_ALGORITHM = "HS256"
-JWT_EXP_DELTA_SECONDS = 1800  # 30 minutes
+JWT_EXP_DELTA_SECONDS = int(os.getenv('JWT_EXPIRATION', 1800))  # 30 minutes
 
 def generate_token(user_id):
     """Generate a new JWT token"""

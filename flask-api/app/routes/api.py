@@ -54,21 +54,15 @@ def predict():
         scan_type = data.get('scan_type', 'REGULAR')
         
         # Use the model to get prediction
-        if url:
-            result = model.predict(url=url)
-        elif content:
-            result = model.predict(content=content)
-        else:
-            return jsonify({
-                "error": {
-                    "code": "PHISH-422", 
-                    "message": "Missing required field: email_content or url"
-                }
-            }), 422
+       # Use the model to get prediction
+        result = model.predict(content=content, url=url)
         
         # Add user ID from authentication token
         result["user_id"] = g.user_id
-
+        
+        # Add model information
+        result["model_version"] = model.model_version
+        
         # Record telemetry (response time in milliseconds)
         response_time_ms = (time.time() - start_time) * 1000
         telemetry_manager.record_prediction(result, response_time_ms)
