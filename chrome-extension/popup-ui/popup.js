@@ -40,14 +40,8 @@ let extensionState = {
 
 // Initialize the popup
 document.addEventListener('DOMContentLoaded', async () => {
-  // Check if authenticated
-  const isAuthenticated = await window.phishGuardAPI.isAuthenticated();
-  
-  if (!isAuthenticated) {
-    // Redirect to login page
-    window.location.href = 'login.html';
-    return;
-  }
+  // Skip authentication check entirely
+  console.log("Authentication bypass enabled - using local simulation mode");
   // Load state from storage
   await loadState();
   updateUI();
