@@ -5,8 +5,14 @@ import numpy as np
 from urllib.parse import urlparse
 import joblib
 import os
-import tensorflow as tf
-from tensorflow import keras
+# Try importing TensorFlow with fallback
+try:
+    import tensorflow as tf
+    from tensorflow import keras
+    TENSORFLOW_AVAILABLE = True
+except ImportError:
+    print("WARNING: TensorFlow not available - LSTM model will be disabled")
+    TENSORFLOW_AVAILABLE = False
 
 
 class PhishingModel:
@@ -20,8 +26,11 @@ class PhishingModel:
         
         self.rf_model_path = os.path.join(base_path, 'rf_model.pkl')
         self.tfidf_path = os.path.join(base_path, 'tfidf.pkl')
-        self.lstm_model_path = os.path.join(base_path, 'lstm_model.h5')
-        self.tokenizer_path = os.path.join(base_path, 'tokenizer.pkl')
+        
+        # Only set LSTM paths if TensorFlow is available
+        if TENSORFLOW_AVAILABLE:
+            self.lstm_model_path = os.path.join(base_path, 'lstm_model.h5')
+            self.tokenizer_path = os.path.join(base_path, 'tokenizer.pkl')
         
         # Load models
         self.rf_model = None
@@ -38,12 +47,13 @@ class PhishingModel:
             print(f"Error loading Random Forest model: {e}")
         
         # Try to load LSTM model
-        try:
-            self.lstm_model = keras.models.load_model(self.lstm_model_path)
-            self.tokenizer = joblib.load(self.tokenizer_path)
-            print("LSTM model loaded successfully")
-        except Exception as e:
-            print(f"Error loading LSTM model: {e}")
+        if TENSORFLOW_AVAILABLE:
+            try:
+                self.lstm_model = keras.models.load_model(self.lstm_model_path)
+                self.tokenizer = joblib.load(self.tokenizer_path)
+                print("LSTM model loaded successfully")
+            except Exception as e:
+                print(f"Error loading LSTM model: {e}")
         
         self.model_version = "1.0.0"
         self.is_ready = (self.rf_model is not None and self.tfidf_vectorizer is not None) or \
